@@ -191,13 +191,16 @@ public class MapsActivity extends FragmentActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         Intent intent = getIntent();
-        String[] data = intent.getStringArrayExtra(CreateSearch.MESSAGE_NAME);
-        if(data[0].equals("0"))
-            this.nickname = data[3];
-        else
-            this.nickname = data[1];
-        this.typeJoinCreate = data[0];
-
+        String[] data_c = intent.getStringArrayExtra(CreateSearch.MESSAGE_NAME);
+        String[] data_j = intent.getStringArrayExtra(JoinSearch.MESSAGE_NAME_JOIN);
+        if(data_c == null){
+            this.nickname = data_j[1];
+            this.typeJoinCreate = data_j[0];
+        }
+        else{
+            this.nickname = data_c[3];
+            this.typeJoinCreate = data_c[0];
+        }
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
