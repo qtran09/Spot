@@ -192,7 +192,10 @@ public class MapsActivity extends FragmentActivity implements
         setContentView(R.layout.activity_maps);
         Intent intent = getIntent();
         String[] data = intent.getStringArrayExtra(CreateSearch.MESSAGE_NAME);
-        this.nickname = data[3];
+        if(data[0].equals("0"))
+            this.nickname = data[3];
+        else
+            this.nickname = data[1];
         this.typeJoinCreate = data[0];
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
