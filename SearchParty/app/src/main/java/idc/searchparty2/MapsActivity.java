@@ -396,7 +396,7 @@ public class MapsActivity extends FragmentActivity implements
                 this.nickname == null ? "no nickname" : this.nickname,
                 SERVICE_ID,
                 mConnectionLifecycleCallback,
-                new AdvertisingOptions(Strategy.P2P_CLUSTER))
+                new AdvertisingOptions(Strategy.P2P_STAR))
                 .setResultCallback(
                         new ResultCallback<Connections.StartAdvertisingResult>() {
                             @Override
@@ -418,7 +418,7 @@ public class MapsActivity extends FragmentActivity implements
                 mGoogleApiClient,
                 SERVICE_ID,
                 mEndpointDiscoveryCallback,
-                new DiscoveryOptions(Strategy.P2P_CLUSTER))
+                new DiscoveryOptions(Strategy.P2P_STAR))
                 .setResultCallback(
                         new ResultCallback<Status>() {
                             @Override
