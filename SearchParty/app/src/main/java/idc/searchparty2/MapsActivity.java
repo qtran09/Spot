@@ -239,9 +239,12 @@ public class MapsActivity extends FragmentActivity implements
         Log.i("onLocationChangedLat",String.valueOf(mLastLocation.getLatitude()));
         Log.i("onLocationChangedLong",String.valueOf(mLastLocation.getLongitude()));
 
-        //mMap.clear();
+        mMap.clear();
         LatLng node = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
         LLList.add(node);
+        if(LLList.size() > 40){
+            LLList.remove(0);
+        }
         drawCircles(LLList);
 
         CameraPosition cameraPosition = new CameraPosition.Builder()
@@ -255,16 +258,17 @@ public class MapsActivity extends FragmentActivity implements
 
     private void drawCircles(LinkedList<LatLng> Positions){
         for(LatLng L : Positions){
-            int offset = (255/Positions.size()) * Positions.indexOf(L);
+            //int offset = (255/Positions.size()) * Positions.indexOf(L);
             //Log.i("drawCircles",Arrays.toString(LLList.toArray()));
             Log.i("drawCircles",Positions.size()+" "+Positions.indexOf(L));
-            Log.i("drawCircles2",""+offset);
+            //Log.i("drawCircles2",""+offset);
             mMap.addCircle(new CircleOptions()
                     .center(L)
                     .radius(10)
                     .strokeWidth(5)
                     .strokeColor(Color.BLACK)
-                    .fillColor(Color.argb(50, 0+offset, 0, 255-offset)));
+                    //.fillColor(Color.argb(50, 0+offset, 0, 255-offset)));
+                    .fillColor(Color.argb(50+Positions.indexOf(L),0,0,255)));
         }
     }
 
