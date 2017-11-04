@@ -25,6 +25,7 @@ import android.support.v4.content.ContextCompat;
 import android.os.Looper;
 
 
+import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
@@ -55,10 +56,27 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderApi;
+import com.google.android.gms.nearby.Nearby;
+import com.google.android.gms.nearby.connection.AdvertisingOptions;
+import com.google.android.gms.nearby.connection.ConnectionInfo;
+import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback;
+import com.google.android.gms.nearby.connection.ConnectionResolution;
+import com.google.android.gms.nearby.connection.Connections;
+import com.google.android.gms.nearby.connection.ConnectionsStatusCodes;
+import com.google.android.gms.nearby.connection.Payload;
+import com.google.android.gms.nearby.connection.PayloadCallback;
+import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
+import com.google.android.gms.nearby.connection.Strategy;
 import com.google.android.gms.tasks.Task;
 import android.location.Location;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, LocationListener {
+import static com.google.android.gms.internal.zzaou.onReceive;
+
+public class MapsActivity extends FragmentActivity implements
+        OnMapReadyCallback,
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,
+        LocationListener {
 
     private GoogleMap mMap;
     private GoogleApiClient mGoogleApiClient;
@@ -70,11 +88,64 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Marker mCurrLocationMarker;
     private LinkedList<LatLng> LLList;
 
+    private String nickname;
+    private final String SERVICE_ID = "kappa";
+
+
+    private final PayloadCallback mPayloadCallback =
+            new PayloadCallback() {
+                @Override
+                public void onPayloadReceived(String endpointId, Payload payload) {
+
+                }
+
+                @Override
+                public void onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate update) {
+
+                }
+            };
+
+    private final ConnectionLifecycleCallback mConnectionLifecycleCallback =
+            new ConnectionLifecycleCallback() {
+
+                @Override
+                public void onConnectionInitiated(
+                        String endpointId, ConnectionInfo connectionInfo) {
+                    // Automatically accept the connection on both sides.
+                    Nearby.Connections.acceptConnection(
+                            mGoogleApiClient, endpointId, mPayloadCallback);
+                }
+
+                @Override
+                public void onConnectionResult(String endpointId, ConnectionResolution result) {
+                    switch (result.getStatus().getStatusCode()) {
+                        case ConnectionsStatusCodes.STATUS_OK:
+                            // We're connected! Can now start sending and receiving data.
+                            Log.i("SELF", "CONNECTED");
+                            break;
+                        case ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED:
+                            // The connection was rejected by one or both sides.
+                            Log.i("SELF", "FAIL CONNECTED");
+                            break;
+                    }
+                }
+
+                @Override
+                public void onDisconnected(String endpointId) {
+                    // We've been disconnected from this endpoint. No more data can be
+                    // sent or received.
+                }
+            };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        Intent intent = getIntent();
+        String[] data = intent.getStringArrayExtra(CreateSearch.MESSAGE_NAME);
+        this.nickname = data[3];
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -85,8 +156,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mGoogleApiClient = new GoogleApiClient.Builder(this)
                     .addConnectionCallbacks(this)
                     .addApi(LocationServices.API)
+                    .addApi(Nearby.CONNECTIONS_API)
                     .build();
         }mGoogleApiClient.connect();
+
         Log.i("onCreate","Connected?: "+ mGoogleApiClient.isConnected());
         mLocationRequest = createLocationRequest();
         //mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -111,6 +184,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onConnected(Bundle connectionHint) {
+        this.startAdvertising();
         Log.i("onConnected","SearchMap Connected");
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
         PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
@@ -188,19 +262,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mLastLocation = location;
         Log.i("onLocationChangedLat",String.valueOf(mLastLocation.getLatitude()));
         Log.i("onLocationChangedLong",String.valueOf(mLastLocation.getLongitude()));
-//        mMap.addCircle(new CircleOptions()
-//                .center(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
-//                .radius(25)
-//                .strokeWidth(5)
-//                .strokeColor(Color.BLACK)
-//                .fillColor(Color.argb(25, 0, 0, 255)));
-//        CameraPosition cameraPosition = new CameraPosition.Builder()
-//                .target(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
-//                .zoom(17)
-//                .bearing(90)
-//                .tilt(40)
-//                .build();
-//        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
 
         //mMap.clear();
         LatLng node = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
@@ -268,5 +329,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onStop() {
         mGoogleApiClient.disconnect();
         super.onStop();
+    }
+
+    private void startAdvertising(){
+        Nearby.Connections.startAdvertising(
+                mGoogleApiClient,
+                this.nickname == null ? "no nickname" : this.nickname,
+                SERVICE_ID,
+                mConnectionLifecycleCallback,
+                new AdvertisingOptions(Strategy.P2P_CLUSTER))
+                .setResultCallback(
+                        new ResultCallback<Connections.StartAdvertisingResult>() {
+                            @Override
+                            public void onResult(@NonNull Connections.StartAdvertisingResult result) {
+                                if (result.getStatus().isSuccess()) {
+                                    // We're advertising!
+                                    Log.i("SELF ADVERTISING", "CONNECTED");
+                                } else {
+                                    // We were unable to start advertising.
+                                    Log.i("SELF ADVERTISING", "NOT CONNECTED");
+                                }
+                            }
+                        });
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
     }
 }
