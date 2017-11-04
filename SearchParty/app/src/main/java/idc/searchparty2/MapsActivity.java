@@ -245,9 +245,11 @@ public class MapsActivity extends FragmentActivity implements
 
     @Override
     public void onConnected(Bundle connectionHint) {
-        this.startAdvertising();
         if(typeJoinCreate.equals("1")){
-            startDiscovery();
+            this.startDiscovery();
+        }
+        else{
+            this.startAdvertising();
         }
         Log.i("onConnected","SearchMap Connected");
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
@@ -416,7 +418,7 @@ public class MapsActivity extends FragmentActivity implements
     private void startDiscovery() {
         Nearby.Connections.startDiscovery(
                 mGoogleApiClient,
-                SERVICE_ID,
+                "HUH",
                 mEndpointDiscoveryCallback,
                 new DiscoveryOptions(Strategy.P2P_STAR))
                 .setResultCallback(
@@ -429,9 +431,7 @@ public class MapsActivity extends FragmentActivity implements
                                 } else {
                                     // We were unable to start discovering.
                                     Log.i("SELF DISCOVERING", "NOT DISCOVERING");
-                                    Log.i("SELF DISCOVERING", status.getStatusMessage());
-                                    Log.i("SELF DISCOVERING", status.getStatus().toString());
-                                    Log.i("SELF DISCOVERING", status.toString());
+                                    Log.i("SELF DISCOVERING", String.valueOf(status.getStatusCode()));
 
 
                                 }
@@ -439,12 +439,9 @@ public class MapsActivity extends FragmentActivity implements
                         });
     }
 
-
-
-
-
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
     }
+
 }
