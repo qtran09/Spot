@@ -1,22 +1,28 @@
 package idc.searchparty2;
 
 import android.Manifest;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.concurrent.TimeUnit;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+//import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.content.IntentSender.SendIntentException;
-import android.content.IntentSender;
 import android.support.v4.content.ContextCompat;
-
+import android.os.Looper;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -36,6 +42,7 @@ import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
@@ -45,6 +52,9 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.ResolvableApiException;
+import com.google.android.gms.location.FusedLocationProviderApi;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
@@ -52,10 +62,14 @@ import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback;
 import com.google.android.gms.nearby.connection.ConnectionResolution;
 import com.google.android.gms.nearby.connection.Connections;
 import com.google.android.gms.nearby.connection.ConnectionsStatusCodes;
+import com.google.android.gms.nearby.connection.DiscoveredEndpointInfo;
+import com.google.android.gms.nearby.connection.DiscoveryOptions;
+import com.google.android.gms.nearby.connection.EndpointDiscoveryCallback;
 import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
+import com.google.android.gms.tasks.Task;
 import android.location.Location;
 
 import static com.google.android.gms.internal.zzaou.onReceive;
@@ -77,8 +91,10 @@ public class MapsActivity extends FragmentActivity implements
     private LinkedList<LatLng> LLList;
 
     private String nickname;
+    private String typeJoinCreate;
     private final String SERVICE_ID = "kappa";
 
+    private MapsActivity thisClass;
 
     private final PayloadCallback mPayloadCallback =
             new PayloadCallback() {
@@ -97,11 +113,25 @@ public class MapsActivity extends FragmentActivity implements
             new ConnectionLifecycleCallback() {
 
                 @Override
-                public void onConnectionInitiated(
-                        String endpointId, ConnectionInfo connectionInfo) {
-                    // Automatically accept the connection on both sides.
-                    Nearby.Connections.acceptConnection(
-                            mGoogleApiClient, endpointId, mPayloadCallback);
+                public void onConnectionInitiated(String endpointId, ConnectionInfo connectionInfo) {
+                    final String endpoint = endpointId;
+                    new AlertDialog.Builder(thisClass)
+                            .setTitle("Accept connection to " + connectionInfo.getEndpointName())
+                            .setMessage("Confirm if the code " + connectionInfo.getAuthenticationToken() + " is also displayed on the other device")
+                            .setPositiveButton("Accept", new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    // The user confirmed, so we can accept the connection.
+                                    Nearby.Connections.acceptConnection(mGoogleApiClient, endpoint, mPayloadCallback);
+                                }
+                            })
+                            .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    // The user canceled, so we should reject the connection.
+                                    Nearby.Connections.rejectConnection(mGoogleApiClient, endpoint);
+                                }
+                            })
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .show();
                 }
 
                 @Override
@@ -109,11 +139,11 @@ public class MapsActivity extends FragmentActivity implements
                     switch (result.getStatus().getStatusCode()) {
                         case ConnectionsStatusCodes.STATUS_OK:
                             // We're connected! Can now start sending and receiving data.
-                            Log.i("SELF", "CONNECTED");
+                            Log.i("SELF", "CONNECTION SUCCESSFUL YAY");
                             break;
                         case ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED:
                             // The connection was rejected by one or both sides.
-                            Log.i("SELF", "FAIL CONNECTED");
+                            Log.i("SELF", "CONNECTION UNSUCCESSFUL");
                             break;
                     }
                 }
@@ -125,14 +155,45 @@ public class MapsActivity extends FragmentActivity implements
                 }
             };
 
+    private final EndpointDiscoveryCallback mEndpointDiscoveryCallback =
+            new EndpointDiscoveryCallback() {
+                @Override
+                public void onEndpointFound(
+                        String endpointId, DiscoveredEndpointInfo discoveredEndpointInfo) {
+                    String name = nickname;
+                    Nearby.Connections.requestConnection(
+                            mGoogleApiClient,
+                            name,
+                            endpointId,
+                            mConnectionLifecycleCallback)
+                            .setResultCallback(
+                                    new ResultCallback<Status>() {
+                                        @Override
+                                        public void onResult(@NonNull Status status) {
+                                            if (status.isSuccess()) {
+                                                // We successfully requested a connection. Now both sides
+                                                // must accept before the connection is established.
+                                            } else {
+                                                // Nearby Connections failed to request the connection.
+                                            }
+                                        }
+                                    });
+                }
+
+                @Override
+                public void onEndpointLost(String endpointId) {
+                    // A previously discovered endpoint has gone away.
+                }
+            };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-
         Intent intent = getIntent();
         String[] data = intent.getStringArrayExtra(CreateSearch.MESSAGE_NAME);
         this.nickname = data[3];
+        this.typeJoinCreate = data[0];
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -146,12 +207,15 @@ public class MapsActivity extends FragmentActivity implements
                     .addApi(LocationServices.API)
                     .addApi(Nearby.CONNECTIONS_API)
                     .build();
-        }mGoogleApiClient.connect();
+        }
+        mGoogleApiClient.connect();
 
-        Log.i("onCreate","Connected?: "+ mGoogleApiClient.isConnected());
         mLocationRequest = createLocationRequest();
         //mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         LLList = new LinkedList<LatLng>();
+
+        Log.i("f", String.valueOf(mGoogleApiClient.isConnected()));
+        thisClass = this;
     }
 
 
@@ -176,28 +240,22 @@ public class MapsActivity extends FragmentActivity implements
         Log.i("onConnected","SearchMap Connected");
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
         PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
-        Log.i("onConnected","Connected?: "+ mGoogleApiClient.isConnected());
         result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
             @Override
             public void onResult(@NonNull LocationSettingsResult result) {
                 final Status status = result.getStatus();
                 Log.i("onResult","SearchMap Connected " + status.getStatusCode());
-
+                Log.i("drawLines",""+(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED));
                 switch (status.getStatusCode()) {
                     case LocationSettingsStatusCodes.SUCCESS:
                         //mMap.setMyLocationEnabled(true);
-                        requestPermissions();
                         startLocationUpdates();
                         break;
                     case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+                        ActivityCompat.requestPermissions(MapsActivity.this,
+                                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                                1);
                         //mMap.setMyLocationEnabled(true);
-                        try {
-                        status.startResolutionForResult(
-                                MapsActivity.this, 1000);
-                        } catch (IntentSender.SendIntentException e) {
-                            // Ignore the error.
-                        }
-                        requestPermissions();
                         startLocationUpdates();
                         break;
                     case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
@@ -206,30 +264,27 @@ public class MapsActivity extends FragmentActivity implements
             }
         });
     }
-
-    private void requestPermissions(){
-        if(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(MapsActivity.this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    1);}
-    }
     public void startLocationUpdates(){
         Log.i("drawLines","drawLines");
         Log.i("drawLines",""+(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED));
 
         if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
             Log.i("drawLines","requestingupdates");
+//            LocationServices.FusedLocationApi.setMockMode(mGoogleApiClient, true);
+//            Location mockloc = new Location("");
+//            mockloc.setLatitude(0.0d);
+//            mockloc.setLongitude(1.1d);
+//            LocationServices.FusedLocationApi.setMockLocation(mGoogleApiClient, mockloc);
 
             LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
 
-        }
-        else{
-            try{
-                TimeUnit.SECONDS.sleep(3);}
-            catch(java.lang.InterruptedException e){
-
-            }
-            startLocationUpdates();
+//            mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+//            Log.i("onLocationChanged",""+mLastLocation);
+//
+//            if (mLastLocation != null) {
+//                Log.i("onLocationChanged",String.valueOf(mLastLocation.getLatitude()));
+//                Log.i("onLocationChanged",String.valueOf(mLastLocation.getLongitude()));
+//            }
         }
     }
 
@@ -238,10 +293,24 @@ public class MapsActivity extends FragmentActivity implements
         mLastLocation = location;
         Log.i("onLocationChangedLat",String.valueOf(mLastLocation.getLatitude()));
         Log.i("onLocationChangedLong",String.valueOf(mLastLocation.getLongitude()));
+//        mMap.addCircle(new CircleOptions()
+//                .center(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
+//                .radius(25)
+//                .strokeWidth(5)
+//                .strokeColor(Color.BLACK)
+//                .fillColor(Color.argb(25, 0, 0, 255)));
+//        CameraPosition cameraPosition = new CameraPosition.Builder()
+//                .target(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
+//                .zoom(17)
+//                .bearing(90)
+//                .tilt(40)
+//                .build();
+//        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
 
         //mMap.clear();
         LatLng node = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-        LLList.add(node);
+        if(node != null)
+            LLList.add(node);
         drawCircles(LLList);
 
         CameraPosition cameraPosition = new CameraPosition.Builder()
@@ -277,7 +346,6 @@ public class MapsActivity extends FragmentActivity implements
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    break;
                 } else {
                     System.exit(0);
                 }
@@ -286,7 +354,10 @@ public class MapsActivity extends FragmentActivity implements
     }
 
     public void onConnectionSuspended(int i) {
+
     }
+
+
     protected LocationRequest createLocationRequest() {
         LocationRequest temp = new LocationRequest();
         temp.setInterval(5000);
@@ -328,6 +399,32 @@ public class MapsActivity extends FragmentActivity implements
                             }
                         });
     }
+
+
+    private void startDiscovery() {
+        Nearby.Connections.startDiscovery(
+                mGoogleApiClient,
+                SERVICE_ID,
+                mEndpointDiscoveryCallback,
+                new DiscoveryOptions(Strategy.P2P_CLUSTER))
+                .setResultCallback(
+                        new ResultCallback<Status>() {
+                            @Override
+                            public void onResult(@NonNull Status status) {
+                                if (status.isSuccess()) {
+                                    // We're discovering!
+                                    Log.i("SELF DISCOVERING", "DISCOVERING");
+                                } else {
+                                    // We were unable to start discovering.
+                                    Log.i("SELF DISCOVERING", "NOT DISCOVERING");
+                                }
+                            }
+                        });
+    }
+
+
+
+
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
