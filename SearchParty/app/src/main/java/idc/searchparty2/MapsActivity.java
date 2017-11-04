@@ -237,6 +237,9 @@ public class MapsActivity extends FragmentActivity implements
     @Override
     public void onConnected(Bundle connectionHint) {
         this.startAdvertising();
+        if(typeJoinCreate.equals("1")){
+            startDiscovery();
+        }
         Log.i("onConnected","SearchMap Connected");
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
         PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
