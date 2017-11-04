@@ -1,20 +1,14 @@
 package idc.searchparty2;
 
 import android.Manifest;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-//import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
@@ -22,7 +16,6 @@ import android.util.Log;
 import android.content.IntentSender.SendIntentException;
 import android.content.IntentSender;
 import android.support.v4.content.ContextCompat;
-import android.os.Looper;
 
 
 import com.google.android.gms.common.ConnectionResult;
@@ -43,7 +36,6 @@ import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
@@ -53,9 +45,6 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.common.api.ResolvableApiException;
-import com.google.android.gms.location.FusedLocationProviderApi;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
@@ -67,7 +56,6 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
-import com.google.android.gms.tasks.Task;
 import android.location.Location;
 
 import static com.google.android.gms.internal.zzaou.onReceive;
@@ -231,21 +219,9 @@ public class MapsActivity extends FragmentActivity implements
 
         if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
             Log.i("drawLines","requestingupdates");
-//            LocationServices.FusedLocationApi.setMockMode(mGoogleApiClient, true);
-//            Location mockloc = new Location("");
-//            mockloc.setLatitude(0.0d);
-//            mockloc.setLongitude(1.1d);
-//            LocationServices.FusedLocationApi.setMockLocation(mGoogleApiClient, mockloc);
 
             LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
 
-//            mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-//            Log.i("onLocationChanged",""+mLastLocation);
-//
-//            if (mLastLocation != null) {
-//                Log.i("onLocationChanged",String.valueOf(mLastLocation.getLatitude()));
-//                Log.i("onLocationChanged",String.valueOf(mLastLocation.getLongitude()));
-//            }
         }
         else{
             try{
