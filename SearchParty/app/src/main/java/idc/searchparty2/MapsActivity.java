@@ -139,11 +139,11 @@ public class MapsActivity extends FragmentActivity implements
                     switch (result.getStatus().getStatusCode()) {
                         case ConnectionsStatusCodes.STATUS_OK:
                             // We're connected! Can now start sending and receiving data.
-                            Log.i("SELF", "CONNECTION SUCCESSFUL YAY");
+                            Log.i("SELF", "CONNECTION WITH OTHER SUCCESSFUL YAY");
                             break;
                         case ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED:
                             // The connection was rejected by one or both sides.
-                            Log.i("SELF", "CONNECTION UNSUCCESSFUL");
+                            Log.i("SELF", "CONNECTION WITH OTHER UNSUCCESSFUL");
                             break;
                     }
                 }
@@ -173,8 +173,11 @@ public class MapsActivity extends FragmentActivity implements
                                             if (status.isSuccess()) {
                                                 // We successfully requested a connection. Now both sides
                                                 // must accept before the connection is established.
+                                                Log.i("SELF", "REQUESTED CONNECTION");
                                             } else {
                                                 // Nearby Connections failed to request the connection.
+                                                Log.i("SELF", "FAILED REQUESTED CONNECTION");
+
                                             }
                                         }
                                     });
