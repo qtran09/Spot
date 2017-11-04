@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">SearchParty</string>
+    <string name="title_activity_search_map">SearchMap</string>
+</resources>
