@@ -429,6 +429,11 @@ public class MapsActivity extends FragmentActivity implements
                                 } else {
                                     // We were unable to start discovering.
                                     Log.i("SELF DISCOVERING", "NOT DISCOVERING");
+                                    Log.i("SELF DISCOVERING", status.getStatusMessage());
+                                    Log.i("SELF DISCOVERING", status.getStatus().toString());
+                                    Log.i("SELF DISCOVERING", status.toString());
+
+
                                 }
                             }
                         });
