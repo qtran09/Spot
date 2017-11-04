@@ -1,1 +1,7 @@
 Wing it.
+
+
+Future requirements
+-Adjustable circle size ( maybe automatic )
+-Chat box
+-Color code
