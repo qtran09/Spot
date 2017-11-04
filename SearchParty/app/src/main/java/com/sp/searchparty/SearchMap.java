@@ -45,6 +45,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
@@ -157,13 +159,19 @@ public class SearchMap extends FragmentActivity implements OnMapReadyCallback, G
         mLastLocation = location;
         Log.i("onLocationChangedLat",String.valueOf(mLastLocation.getLatitude()));
         Log.i("onLocationChangedLong",String.valueOf(mLastLocation.getLongitude()));
-//        mMap.addCircle(new CircleOptions()
-//                .center(new LatLng(37.4, -122.1))
-//                .radius(1000)
-//                .strokeWidth(10)
-//                .strokeColor(Color.GREEN)
-//                .fillColor(Color.argb(128, 255, 0, 0))
-//                .clickable(true));
+        mMap.addCircle(new CircleOptions()
+                .center(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
+                .radius(1000)
+                .strokeWidth(10)
+                .strokeColor(Color.GREEN)
+                .fillColor(Color.argb(128, 255, 0, 0)));
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
+                .zoom(17)
+                .bearing(90)
+                .tilt(40)
+                .build();
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
     }
 
     private void drawCircles(List<LatLng> Positions){
@@ -173,8 +181,7 @@ public class SearchMap extends FragmentActivity implements OnMapReadyCallback, G
                     .radius(1000)
                     .strokeWidth(10)
                     .strokeColor(Color.GREEN)
-                    .fillColor(Color.argb(80, 255, 0, 255/Positions.indexOf(L)))
-                    .clickable(true));
+                    .fillColor(Color.argb(80, 255, 0, 255/Positions.indexOf(L))));
         }
     }
 
