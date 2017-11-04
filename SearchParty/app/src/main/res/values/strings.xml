@@ -3,6 +3,7 @@
     <string name="create_search_prompt"> Please enter in the name and description of the near search</string>
     <string name="create_search_name">Name</string>
     <string name="create_search_desc">Description</string>
+    <string name="create_search_nick">Nickname</string>
     <string name="title_activity_maps">Map</string>
 
 </resources>

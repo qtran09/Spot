@@ -19,10 +19,12 @@ public class CreateSearch extends AppCompatActivity {
         Intent intent = new Intent(this, MapsActivity.class);
         EditText nameTextField = (EditText) findViewById(R.id.namePrompt);
         EditText descTextField = (EditText) findViewById(R.id.descPrompt);
+        EditText nickTextField = (EditText) findViewById(R.id.descPrompt);
         String[] name_desc = {
                 "0",
                 nameTextField.getText().toString(),
-                descTextField.getText().toString()
+                descTextField.getText().toString(),
+                nickTextField.getText().toString()
         };
 
         final String MESSAGE_NAME = "Name and text fields";
