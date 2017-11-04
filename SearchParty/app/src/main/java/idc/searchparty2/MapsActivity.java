@@ -4,6 +4,7 @@ import android.Manifest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -19,6 +20,7 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.content.IntentSender.SendIntentException;
+import android.content.IntentSender;
 import android.support.v4.content.ContextCompat;
 import android.os.Looper;
 
@@ -85,6 +87,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .addApi(LocationServices.API)
                     .build();
         }mGoogleApiClient.connect();
+        Log.i("onCreate","Connected?: "+ mGoogleApiClient.isConnected());
         mLocationRequest = createLocationRequest();
         //mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         LLList = new LinkedList<LatLng>();
@@ -111,22 +114,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Log.i("onConnected","SearchMap Connected");
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
         PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
+        Log.i("onConnected","Connected?: "+ mGoogleApiClient.isConnected());
         result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
             @Override
             public void onResult(@NonNull LocationSettingsResult result) {
                 final Status status = result.getStatus();
                 Log.i("onResult","SearchMap Connected " + status.getStatusCode());
-                Log.i("drawLines",""+(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED));
+
                 switch (status.getStatusCode()) {
                     case LocationSettingsStatusCodes.SUCCESS:
                         //mMap.setMyLocationEnabled(true);
+                        requestPermissions();
                         startLocationUpdates();
                         break;
                     case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
-                        ActivityCompat.requestPermissions(MapsActivity.this,
-                                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                                1);
                         //mMap.setMyLocationEnabled(true);
+                        try {
+                        status.startResolutionForResult(
+                                MapsActivity.this, 1000);
+                        } catch (IntentSender.SendIntentException e) {
+                            // Ignore the error.
+                        }
+                        requestPermissions();
                         startLocationUpdates();
                         break;
                     case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
@@ -134,6 +143,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         });
+    }
+
+    private void requestPermissions(){
+        if(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(MapsActivity.this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    1);}
     }
     public void startLocationUpdates(){
         Log.i("drawLines","drawLines");
@@ -156,6 +172,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                Log.i("onLocationChanged",String.valueOf(mLastLocation.getLatitude()));
 //                Log.i("onLocationChanged",String.valueOf(mLastLocation.getLongitude()));
 //            }
+        }
+        else{
+            try{
+                TimeUnit.SECONDS.sleep(3);}
+            catch(java.lang.InterruptedException e){
+
+            }
+            startLocationUpdates();
         }
     }
 
@@ -180,8 +204,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         //mMap.clear();
         LatLng node = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-        if(node != null)
-            LLList.add(node);
+        LLList.add(node);
         drawCircles(LLList);
 
         CameraPosition cameraPosition = new CameraPosition.Builder()
@@ -217,6 +240,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    break;
                 } else {
                     System.exit(0);
                 }
