@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.EditText;
 
 public class CreateSearch extends AppCompatActivity {
+    public static final String MESSAGE_NAME = "NAME";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,7 +28,7 @@ public class CreateSearch extends AppCompatActivity {
                 nickTextField.getText().toString()
         };
 
-        final String MESSAGE_NAME = "Name and text fields";
+
         intent.putExtra(MESSAGE_NAME, name_desc);
         startActivity(intent);
     }
