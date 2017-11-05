@@ -4,6 +4,7 @@ package idc.searchparty2;
 import android.Manifest;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -97,6 +98,7 @@ public class MapsActivity extends FragmentActivity implements
     private final String SERVICE_ID = "Search.Party.com";
 
     private double[] coords;
+    private String latlongname;
 
     /**
      *  This method executes when the activity is first initialized and the user first sees the map
@@ -294,11 +296,9 @@ public class MapsActivity extends FragmentActivity implements
         mLastLocation = location;
 
         if (!endpointIDs.isEmpty()) {
-            double[] latlng = new double[]{
-                    mLastLocation.getLatitude(), mLastLocation.getLongitude()
-            };
+            String latlng = mLastLocation.getLatitude() + " " + mLastLocation.getLongitude();
             final PendingResult<Status> statusPendingResult = Nearby.Connections.sendPayload(
-                    mGoogleApiClient, endpointIDs, Payload.fromBytes(toByteArray(latlng))); //?
+                    mGoogleApiClient, endpointIDs, Payload.fromBytes(StringToByteArray(latlng)));
         }
 
         Log.i("onLocationChangedLat", String.valueOf(mLastLocation.getLatitude()));
@@ -591,15 +591,31 @@ public class MapsActivity extends FragmentActivity implements
                  */
                 @Override
                 public void onPayloadReceived(String endpointId, Payload payload) {
-                    coords = toDoubleArray(payload.asBytes());
-                    LatLng node = new LatLng(coords[0], coords[1]);
-                    mMap.addCircle(new CircleOptions()
-                            .center(node)
-                            .radius(5)
-                            .strokeWidth(5)
-                            .strokeColor(Color.BLACK)
-                            .fillColor(Color.argb(50, 255, 0, 0)));
+                    String temp = new String(payload.asBytes());
+                    String[] latlongnameArr = temp.split("\\s+");
+                    Log.i("onPayloadReceived", temp);
+                    Log.i("onPayloadReceived", ""+latlongnameArr);
 
+
+                    if (latlongnameArr.length == 2) {
+                        LatLng node = new LatLng(
+                                Double.parseDouble(latlongnameArr[0]),
+                                Double.parseDouble(latlongnameArr[1]));
+
+                        mMap.addCircle(new CircleOptions()
+                                .center(node)
+                                .radius(5)
+                                .strokeWidth(5)
+                                .strokeColor(Color.BLACK)
+                                .fillColor(Color.argb(50, 255, 0, 0)));
+                    } else {
+                        LatLng node = new LatLng(
+                                Double.parseDouble(latlongnameArr[0]),
+                                Double.parseDouble(latlongnameArr[1]));
+                        mMap.addMarker(new MarkerOptions()
+                                .position(node)
+                                .title("Found by " + latlongnameArr[2] + "!"));
+                    }
                 }
 
                 /**
@@ -652,6 +668,15 @@ public class MapsActivity extends FragmentActivity implements
         return bytes;
     }
 
+    private byte[] StringToByteArray(String str){
+        byte[] byteArr = str.getBytes();
+        return byteArr;
+    }
+    private String ByteArrayToString(byte[] byteArray) {
+        String str = new String(byteArray);
+        return str;
+    }
+
 
     /**
      *  Places a marker on the map indicating the finding of the target object.
@@ -663,6 +688,13 @@ public class MapsActivity extends FragmentActivity implements
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
                 .title("Found by " + nickname + "!"));
+        if (!endpointIDs.isEmpty()) {
+            String payloadstr = Double.toString(mLastLocation.getLatitude()) + " " +
+                    Double.toString(mLastLocation.getLongitude()) + " " +
+                    nickname;
+            final PendingResult<Status> statusPendingResult = Nearby.Connections.sendPayload(
+                    mGoogleApiClient, endpointIDs, Payload.fromBytes(StringToByteArray(payloadstr)));
+        }
     }
 
 }
