@@ -114,6 +114,7 @@ public class MapsActivity extends FragmentActivity implements
 
                 @Override
                 public void onConnectionInitiated(String endpointId, ConnectionInfo connectionInfo) {
+                    Log.i("SELF", "onConnectionInitiated");
                     final String endpoint = endpointId;
                     new AlertDialog.Builder(thisClass)
                             .setTitle("Accept connection to " + connectionInfo.getEndpointName())
@@ -136,6 +137,7 @@ public class MapsActivity extends FragmentActivity implements
 
                 @Override
                 public void onConnectionResult(String endpointId, ConnectionResolution result) {
+                    Log.i("SELF", "onConnectionResult");
                     switch (result.getStatus().getStatusCode()) {
                         case ConnectionsStatusCodes.STATUS_OK:
                             // We're connected! Can now start sending and receiving data.
@@ -150,6 +152,7 @@ public class MapsActivity extends FragmentActivity implements
 
                 @Override
                 public void onDisconnected(String endpointId) {
+                    Log.i("SELF", "onDisconnected");
                     // We've been disconnected from this endpoint. No more data can be
                     // sent or received.
                 }
@@ -160,6 +163,7 @@ public class MapsActivity extends FragmentActivity implements
                 @Override
                 public void onEndpointFound(
                         String endpointId, DiscoveredEndpointInfo discoveredEndpointInfo) {
+                    Log.i("SELF", "OnEndpointFound");
                     String name = nickname;
                     Nearby.Connections.requestConnection(
                             mGoogleApiClient,
@@ -219,6 +223,11 @@ public class MapsActivity extends FragmentActivity implements
         }
         mGoogleApiClient.connect();
 
+        if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(MapsActivity.this,
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                    1);
+        }
         mLocationRequest = createLocationRequest();
         //mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         LLList = new LinkedList<LatLng>();
@@ -251,6 +260,9 @@ public class MapsActivity extends FragmentActivity implements
         else{
             this.startAdvertising();
         }
+//        this.startDiscovery();
+//        this.startAdvertising();
+
         Log.i("onConnected","SearchMap Connected");
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
         PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
@@ -393,6 +405,9 @@ public class MapsActivity extends FragmentActivity implements
     }
 
     private void startAdvertising(){
+//        ActivityCompat.requestPermissions(MapsActivity.this,
+//                new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+//                1);
         Nearby.Connections.startAdvertising(
                 mGoogleApiClient,
                 this.nickname == null ? "no nickname" : this.nickname,
@@ -416,7 +431,11 @@ public class MapsActivity extends FragmentActivity implements
 
 
     private void startDiscovery() {
+//        ActivityCompat.requestPermissions(MapsActivity.this,
+//                new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+//                1);
         Nearby.Connections.startDiscovery(
+
                 mGoogleApiClient,
                 "HUH",
                 mEndpointDiscoveryCallback,
