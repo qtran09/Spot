@@ -341,12 +341,16 @@ public class MapsActivity extends FragmentActivity implements
 
     @Override
     public void onLocationChanged(Location location) {
-        mLastLocation = location;
-        double[] latlng = new double[]{mLastLocation.getLatitude(),mLastLocation.getLongitude()};
-        final PendingResult<Status> statusPendingResult = Nearby.Connections.sendPayload(mGoogleApiClient, endpointIDs, Payload.fromBytes(toByteArray(latlng))); //?
 
-        Log.i("onLocationChangedLat",String.valueOf(mLastLocation.getLatitude()));
-        Log.i("onLocationChangedLong",String.valueOf(mLastLocation.getLongitude()));
+        mLastLocation = location;
+
+        if (!endpointIDs.isEmpty()) {
+            double[] latlng = new double[]{mLastLocation.getLatitude(), mLastLocation.getLongitude()};
+            final PendingResult<Status> statusPendingResult = Nearby.Connections.sendPayload(mGoogleApiClient, endpointIDs, Payload.fromBytes(toByteArray(latlng))); //?
+        }
+
+        Log.i("onLocationChangedLat", String.valueOf(mLastLocation.getLatitude()));
+        Log.i("onLocationChangedLong", String.valueOf(mLastLocation.getLongitude()));
 
         LatLng node = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
         mMap.addCircle(new CircleOptions()
@@ -359,10 +363,10 @@ public class MapsActivity extends FragmentActivity implements
         CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
                 .zoom(18)
-                .bearing(90)
                 .tilt(40)
                 .build();
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+
     }
 
     @Override
@@ -387,8 +391,8 @@ public class MapsActivity extends FragmentActivity implements
 
     protected LocationRequest createLocationRequest() {
         LocationRequest temp = new LocationRequest();
-        temp.setInterval(5000);
-        temp.setFastestInterval(3000);
+        temp.setInterval(3000);
+        temp.setFastestInterval(2000);
         temp.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         return temp;
     }
