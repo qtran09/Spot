@@ -6,38 +6,27 @@ import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.content.IntentSender.SendIntentException;
 import android.content.IntentSender;
 import android.support.v4.content.ContextCompat;
-
-
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
-import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResult;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -46,10 +35,7 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
-import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
@@ -67,8 +53,6 @@ import com.google.android.gms.nearby.connection.Strategy;
 import android.location.Location;
 import android.view.View;
 
-import static com.google.android.gms.internal.zzaou.onReceive;
-
 public class MapsActivity extends FragmentActivity implements
         OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
@@ -79,7 +63,9 @@ public class MapsActivity extends FragmentActivity implements
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
     private LocationRequest mLocationRequest;
+    private Marker mCurrLocationMarker;
     private LinkedList<LatLng> LLList;
+    private LinkedList<String> endpointIDs;
 
     private String nickname;
     private String typeJoinCreate;
@@ -92,12 +78,19 @@ public class MapsActivity extends FragmentActivity implements
                 @Override
                 public void onPayloadReceived(String endpointId, Payload payload) {
                     coords = toDoubleArray(payload.asBytes());
+                    LatLng node = new LatLng(coords[0], coords[1]);
+                    mMap.addCircle(new CircleOptions()
+                            .center(node)
+                            .radius(5)
+                            .strokeWidth(5)
+                            .strokeColor(Color.BLACK)
+                            .fillColor(Color.argb(50, 255, 0, 0)));
 
                 }
 
                 @Override
                 public void onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate update) {
-
+                    Log.i("SELF", "onPayloadTransferUpdate called: " + update.getStatus());
                 }
             };
     private double[] toDoubleArray(byte[] arr){
@@ -130,6 +123,7 @@ public class MapsActivity extends FragmentActivity implements
                                 public void onClick(DialogInterface dialog, int which) {
                                     // The user confirmed, so we can accept the connection.
                                     Nearby.Connections.acceptConnection(mGoogleApiClient, endpoint, mPayloadCallback);
+                                    endpointIDs.add(endpoint);
                                 }
                             })
                             .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
@@ -212,16 +206,10 @@ public class MapsActivity extends FragmentActivity implements
         if(data_c == null){
             this.nickname = data_j[1];
             this.typeJoinCreate = data_j[0];
-            Log.i("SELF", this.nickname);
-            Log.i("SELF", this.typeJoinCreate);
-
         }
         else{
-            this.nickname = data_c[3];
+            this.nickname = data_c[1];
             this.typeJoinCreate = data_c[0];
-            Log.i("SELF", this.nickname);
-            Log.i("SELF", this.typeJoinCreate);
-
         }
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -237,13 +225,16 @@ public class MapsActivity extends FragmentActivity implements
                     .build();
         }
         mGoogleApiClient.connect();
+
         if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MapsActivity.this,
                     new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
                     1);
         }
         mLocationRequest = createLocationRequest();
+        endpointIDs = new LinkedList<String>();
         LLList = new LinkedList<LatLng>();
+
         Log.i("f", String.valueOf(mGoogleApiClient.isConnected()));
     }
 
@@ -271,6 +262,9 @@ public class MapsActivity extends FragmentActivity implements
         else{
             this.startAdvertising();
         }
+//        this.startDiscovery();
+//        this.startAdvertising();
+
         Log.i("onConnected","SearchMap Connected");
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
         PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
@@ -326,7 +320,7 @@ public class MapsActivity extends FragmentActivity implements
             try{
                 TimeUnit.SECONDS.sleep(3);}
             catch(java.lang.InterruptedException e){
-                e.printStackTrace();
+
             }
             startLocationUpdates();
         }
@@ -334,9 +328,16 @@ public class MapsActivity extends FragmentActivity implements
 
     @Override
     public void onLocationChanged(Location location) {
+
         mLastLocation = location;
-        Log.i("onLocationChangedLat",String.valueOf(mLastLocation.getLatitude()));
-        Log.i("onLocationChangedLong",String.valueOf(mLastLocation.getLongitude()));
+
+        if (!endpointIDs.isEmpty()) {
+            double[] latlng = new double[]{mLastLocation.getLatitude(), mLastLocation.getLongitude()};
+            final PendingResult<Status> statusPendingResult = Nearby.Connections.sendPayload(mGoogleApiClient, endpointIDs, Payload.fromBytes(toByteArray(latlng))); //?
+        }
+
+        Log.i("onLocationChangedLat", String.valueOf(mLastLocation.getLatitude()));
+        Log.i("onLocationChangedLong", String.valueOf(mLastLocation.getLongitude()));
 
         LatLng node = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
         mMap.addCircle(new CircleOptions()
@@ -349,10 +350,10 @@ public class MapsActivity extends FragmentActivity implements
         CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
                 .zoom(18)
-                .bearing(90)
                 .tilt(40)
                 .build();
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+
     }
 
     @Override
@@ -363,9 +364,7 @@ public class MapsActivity extends FragmentActivity implements
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    System.out.print("");
-                }
-                else {
+                } else {
                     System.exit(0);
                 }
             }
@@ -379,8 +378,8 @@ public class MapsActivity extends FragmentActivity implements
 
     protected LocationRequest createLocationRequest() {
         LocationRequest temp = new LocationRequest();
-        temp.setInterval(5000);
-        temp.setFastestInterval(3000);
+        temp.setInterval(3000);
+        temp.setFastestInterval(2000);
         temp.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         return temp;
     }
@@ -441,9 +440,16 @@ public class MapsActivity extends FragmentActivity implements
                                     // We were unable to start discovering.
                                     Log.i("SELF DISCOVERING", "NOT DISCOVERING");
                                     Log.i("SELF DISCOVERING", String.valueOf(status.getStatusCode()));
+
+
                                 }
                             }
                         });
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
     }
 
     public void notifyFound(View view){
@@ -452,8 +458,4 @@ public class MapsActivity extends FragmentActivity implements
                 .title("Found by " + nickname + "!"));
     }
 
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
-    }
 }

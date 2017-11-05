@@ -5,7 +5,6 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.view.Window;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -24,6 +23,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void joinButtonPress(View view){
         Intent intent = new Intent(this, JoinSearch.class);
+        startActivity(intent);
+    }
+
+    public void initiateHelp(View view){
+        Intent intent = new Intent(this, HelpScreen.class);
         startActivity(intent);
     }
 }

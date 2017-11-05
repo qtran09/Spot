@@ -1,10 +1,21 @@
 <resources>
     <string name="app_name">Search Party</string>
     <string name="create_search_prompt"> Please enter a nickname</string>
-    <string name="join_search_prompt">Please enter in a nickname</string>
+    <string name="join_search_prompt">Please enter a nickname</string>
     <string name="create_search_name">Name</string>
     <string name="create_search_desc">Description</string>
     <string name="create_search_nick">Nickname</string>
     <string name="title_activity_maps">Map</string>
-
+    <string name="help_1">
+        Press "Create Group" to create a new search group and await other members to join.
+    </string>
+    <string name="help_2">
+        Press "Join Group"  to join a pre-existing group.
+    </string>
+    <string name="help_3">
+        Once on the map, walk around to see the location and paths of other members.
+    </string>
+    <string name="help_4">
+        Once the desired object is found, press the star on the bottom right to notify other users.
+    </string>
 </resources>
