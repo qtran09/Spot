@@ -343,7 +343,6 @@ public class MapsActivity extends FragmentActivity implements
                 .strokeColor(Color.BLACK)
                 .fillColor(Color.argb(50, 0, 0, 255)));
 
-
         CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
                 .zoom(18)
@@ -352,7 +351,6 @@ public class MapsActivity extends FragmentActivity implements
                 .build();
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
     }
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
