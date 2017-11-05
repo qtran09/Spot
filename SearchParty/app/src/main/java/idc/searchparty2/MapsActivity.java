@@ -78,6 +78,7 @@ public class MapsActivity extends FragmentActivity implements
     private LocationRequest mLocationRequest;
     private Marker mCurrLocationMarker;
     private LinkedList<LatLng> LLList;
+    private LinkedList<String> endpointIDs;
 
     private String nickname;
     private String typeJoinCreate;
@@ -90,12 +91,19 @@ public class MapsActivity extends FragmentActivity implements
                 @Override
                 public void onPayloadReceived(String endpointId, Payload payload) {
                     coords = toDoubleArray(payload.asBytes());
+                    LatLng node = new LatLng(coords[0], coords[1]);
+                    mMap.addCircle(new CircleOptions()
+                            .center(node)
+                            .radius(5)
+                            .strokeWidth(5)
+                            .strokeColor(Color.BLACK)
+                            .fillColor(Color.argb(50, 255, 0, 0)));
 
                 }
 
                 @Override
                 public void onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate update) {
-
+                    Log.i("SELF", "onPayloadTransferUpdate called: " + update.getStatus());
                 }
             };
     private double[] toDoubleArray(byte[] arr){
@@ -128,6 +136,7 @@ public class MapsActivity extends FragmentActivity implements
                                 public void onClick(DialogInterface dialog, int which) {
                                     // The user confirmed, so we can accept the connection.
                                     Nearby.Connections.acceptConnection(mGoogleApiClient, endpoint, mPayloadCallback);
+                                    endpointIDs.add(endpoint);
                                 }
                             })
                             .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
@@ -236,6 +245,7 @@ public class MapsActivity extends FragmentActivity implements
                     1);
         }
         mLocationRequest = createLocationRequest();
+        endpointIDs = new LinkedList<String>();
         LLList = new LinkedList<LatLng>();
 
         Log.i("f", String.valueOf(mGoogleApiClient.isConnected()));
@@ -332,6 +342,9 @@ public class MapsActivity extends FragmentActivity implements
     @Override
     public void onLocationChanged(Location location) {
         mLastLocation = location;
+        double[] latlng = new double[]{mLastLocation.getLatitude(),mLastLocation.getLongitude()};
+        final PendingResult<Status> statusPendingResult = Nearby.Connections.sendPayload(mGoogleApiClient, endpointIDs, Payload.fromBytes(toByteArray(latlng))); //?
+
         Log.i("onLocationChangedLat",String.valueOf(mLastLocation.getLatitude()));
         Log.i("onLocationChangedLong",String.valueOf(mLastLocation.getLongitude()));
 
