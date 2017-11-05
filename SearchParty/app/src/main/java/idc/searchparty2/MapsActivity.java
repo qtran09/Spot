@@ -1,28 +1,25 @@
 package idc.searchparty2;
 
 import android.Manifest;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
 import java.util.LinkedList;
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import java.util.concurrent.TimeUnit;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-//import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.content.IntentSender.SendIntentException;
+import android.content.IntentSender;
 import android.support.v4.content.ContextCompat;
-import android.os.Looper;
+
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -42,7 +39,6 @@ import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
@@ -52,9 +48,6 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.common.api.ResolvableApiException;
-import com.google.android.gms.location.FusedLocationProviderApi;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
@@ -69,7 +62,6 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
-import com.google.android.gms.tasks.Task;
 import android.location.Location;
 
 import static com.google.android.gms.internal.zzaou.onReceive;
@@ -84,9 +76,6 @@ public class MapsActivity extends FragmentActivity implements
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
     private LocationRequest mLocationRequest;
-    private double latitudeValue = 0.0;
-    private double longitudeValue = 0.0;
-    private FusedLocationProviderClient mFusedLocationClient;
     private Marker mCurrLocationMarker;
     private LinkedList<LatLng> LLList;
 
@@ -94,12 +83,13 @@ public class MapsActivity extends FragmentActivity implements
     private String typeJoinCreate;
     private final String SERVICE_ID = "Search.Party.com";
 
-    private MapsActivity thisClass;
+    private double[] coords;
 
     private final PayloadCallback mPayloadCallback =
             new PayloadCallback() {
                 @Override
                 public void onPayloadReceived(String endpointId, Payload payload) {
+                    coords = toDoubleArray(payload.asBytes());
 
                 }
 
@@ -108,7 +98,22 @@ public class MapsActivity extends FragmentActivity implements
 
                 }
             };
-
+    private double[] toDoubleArray(byte[] arr){
+        int times = Double.SIZE/Byte.SIZE;
+        double[] doubles = new double[arr.length/times];
+        for(int i=0;i<doubles.length;i++){
+            doubles[i] = ByteBuffer.wrap(arr,i*times,times).getDouble();
+        }
+        return doubles;
+    }
+    private byte[] toByteArray(double[] doubleArray){
+        int times = Double.SIZE / Byte.SIZE;
+        byte[] bytes = new byte[doubleArray.length * times];
+        for(int i=0;i<doubleArray.length;i++){
+            ByteBuffer.wrap(bytes, i*times, times).putDouble(doubleArray[i]);
+        }
+        return bytes;
+    }
     private final ConnectionLifecycleCallback mConnectionLifecycleCallback =
             new ConnectionLifecycleCallback() {
 
@@ -116,7 +121,7 @@ public class MapsActivity extends FragmentActivity implements
                 public void onConnectionInitiated(String endpointId, ConnectionInfo connectionInfo) {
                     Log.i("SELF", "onConnectionInitiated");
                     final String endpoint = endpointId;
-                    new AlertDialog.Builder(thisClass)
+                    new AlertDialog.Builder(MapsActivity.this)
                             .setTitle("Accept connection to " + connectionInfo.getEndpointName())
                             .setMessage("Confirm if the code " + connectionInfo.getAuthenticationToken() + " is also displayed on the other device")
                             .setPositiveButton("Accept", new DialogInterface.OnClickListener() {
@@ -231,11 +236,9 @@ public class MapsActivity extends FragmentActivity implements
                     1);
         }
         mLocationRequest = createLocationRequest();
-        //mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         LLList = new LinkedList<LatLng>();
 
         Log.i("f", String.valueOf(mGoogleApiClient.isConnected()));
-        thisClass = this;
     }
 
 
@@ -268,22 +271,28 @@ public class MapsActivity extends FragmentActivity implements
         Log.i("onConnected","SearchMap Connected");
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
         PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
+        Log.i("onConnected","Connected?: "+ mGoogleApiClient.isConnected());
         result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
             @Override
             public void onResult(@NonNull LocationSettingsResult result) {
                 final Status status = result.getStatus();
                 Log.i("onResult","SearchMap Connected " + status.getStatusCode());
-                Log.i("drawLines",""+(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED));
+
                 switch (status.getStatusCode()) {
                     case LocationSettingsStatusCodes.SUCCESS:
                         //mMap.setMyLocationEnabled(true);
+                        requestPermissions();
                         startLocationUpdates();
                         break;
                     case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
-                        ActivityCompat.requestPermissions(MapsActivity.this,
-                                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                                1);
                         //mMap.setMyLocationEnabled(true);
+                        try {
+                            status.startResolutionForResult(
+                                    MapsActivity.this, 1000);
+                        } catch (IntentSender.SendIntentException e) {
+                            // Ignore the error.
+                        }
+                        requestPermissions();
                         startLocationUpdates();
                         break;
                     case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
@@ -292,27 +301,31 @@ public class MapsActivity extends FragmentActivity implements
             }
         });
     }
+
+    private void requestPermissions(){
+        if(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(MapsActivity.this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    1);}
+    }
+
     public void startLocationUpdates(){
         Log.i("drawLines","drawLines");
         Log.i("drawLines",""+(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED));
 
         if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
             Log.i("drawLines","requestingupdates");
-//            LocationServices.FusedLocationApi.setMockMode(mGoogleApiClient, true);
-//            Location mockloc = new Location("");
-//            mockloc.setLatitude(0.0d);
-//            mockloc.setLongitude(1.1d);
-//            LocationServices.FusedLocationApi.setMockLocation(mGoogleApiClient, mockloc);
 
             LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
 
-//            mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-//            Log.i("onLocationChanged",""+mLastLocation);
-//
-//            if (mLastLocation != null) {
-//                Log.i("onLocationChanged",String.valueOf(mLastLocation.getLatitude()));
-//                Log.i("onLocationChanged",String.valueOf(mLastLocation.getLongitude()));
-//            }
+        }
+        else{
+            try{
+                TimeUnit.SECONDS.sleep(3);}
+            catch(java.lang.InterruptedException e){
+
+            }
+            startLocationUpdates();
         }
     }
 
@@ -321,48 +334,23 @@ public class MapsActivity extends FragmentActivity implements
         mLastLocation = location;
         Log.i("onLocationChangedLat",String.valueOf(mLastLocation.getLatitude()));
         Log.i("onLocationChangedLong",String.valueOf(mLastLocation.getLongitude()));
-//        mMap.addCircle(new CircleOptions()
-//                .center(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
-//                .radius(25)
-//                .strokeWidth(5)
-//                .strokeColor(Color.BLACK)
-//                .fillColor(Color.argb(25, 0, 0, 255)));
-//        CameraPosition cameraPosition = new CameraPosition.Builder()
-//                .target(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
-//                .zoom(17)
-//                .bearing(90)
-//                .tilt(40)
-//                .build();
-//        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
 
-        //mMap.clear();
         LatLng node = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-        if(node != null)
-            LLList.add(node);
-        drawCircles(LLList);
+        mMap.addCircle(new CircleOptions()
+                .center(node)
+                .radius(5)
+                .strokeWidth(5)
+                .strokeColor(Color.BLACK)
+                .fillColor(Color.argb(50, 0, 0, 255)));
+
 
         CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
-                .zoom(17)
+                .zoom(18)
                 .bearing(90)
                 .tilt(40)
                 .build();
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
-    }
-
-    private void drawCircles(LinkedList<LatLng> Positions){
-        for(LatLng L : Positions){
-            int offset = (255/Positions.size()) * Positions.indexOf(L);
-            //Log.i("drawCircles",Arrays.toString(LLList.toArray()));
-            Log.i("drawCircles",Positions.size()+" "+Positions.indexOf(L));
-            Log.i("drawCircles2",""+offset);
-            mMap.addCircle(new CircleOptions()
-                    .center(L)
-                    .radius(10)
-                    .strokeWidth(5)
-                    .strokeColor(Color.BLACK)
-                    .fillColor(Color.argb(50, 0+offset, 0, 255-offset)));
-        }
     }
 
 
