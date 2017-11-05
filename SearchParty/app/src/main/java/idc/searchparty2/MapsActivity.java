@@ -667,11 +667,24 @@ public class MapsActivity extends FragmentActivity implements
         }
         return bytes;
     }
-
+    /**
+     * Utility function to convert a double array to a bytearray
+     *
+     * @param str string provided for conversion to bytes
+     *
+     * @return              A bytearray converted from the String
+     */
     private byte[] StringToByteArray(String str){
         byte[] byteArr = str.getBytes();
         return byteArr;
     }
+    /**
+     * Utility function to convert a double array to a bytearray
+     *
+     * @param byteArray Bytearray provided for conversion to a String
+     *
+     * @return              A String converted from the Byte array
+     */
     private String ByteArrayToString(byte[] byteArray) {
         String str = new String(byteArray);
         return str;
