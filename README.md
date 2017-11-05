@@ -19,7 +19,11 @@ These instructions will get you a copy of the project for you to use by yourself
 7. Submit a pull request
 ## Built With
 Java and Android Studio. Also used the Google Nearby, Location and Maps APIs.
-
+## Comments
+Main code is located in SearchParty/app/src/main/java/idc/searchparty2/
+Layout XML files located in SearchParty/app/src/main/res/layout/
+Values XML files located in SearchParty/app/src/main/res/values/
+Manifest XML file located in SearchParty/app/src/main/
 ## Credits
 Original contributers: Justin Lee, Oliver Pang, Quyen Tran, Shuyang Wang
 ## License 
