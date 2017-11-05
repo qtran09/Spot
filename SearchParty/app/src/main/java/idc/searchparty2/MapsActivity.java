@@ -163,7 +163,7 @@ public class MapsActivity extends FragmentActivity implements
                 @Override
                 public void onEndpointFound(
                         String endpointId, DiscoveredEndpointInfo discoveredEndpointInfo) {
-                    Log.i("SELF", "OnEndpointFound");
+                    Log.i("SELF", "ENDPOINT FOUND");
                     String name = nickname;
                     Nearby.Connections.requestConnection(
                             mGoogleApiClient,
@@ -190,6 +190,8 @@ public class MapsActivity extends FragmentActivity implements
                 @Override
                 public void onEndpointLost(String endpointId) {
                     // A previously discovered endpoint has gone away.
+                    Log.i("SELF", "ENDPOINT LOST");
+
                 }
             };
 
