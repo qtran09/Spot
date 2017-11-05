@@ -98,42 +98,314 @@ public class MapsActivity extends FragmentActivity implements
 
     private double[] coords;
 
-    private final PayloadCallback mPayloadCallback =
-            new PayloadCallback() {
-                @Override
-                public void onPayloadReceived(String endpointId, Payload payload) {
-                    coords = toDoubleArray(payload.asBytes());
-                    LatLng node = new LatLng(coords[0], coords[1]);
-                    mMap.addCircle(new CircleOptions()
-                            .center(node)
-                            .radius(5)
-                            .strokeWidth(5)
-                            .strokeColor(Color.BLACK)
-                            .fillColor(Color.argb(50, 255, 0, 0)));
-
-                }
-
-                @Override
-                public void onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate update) {
-                    Log.i("SELF", "onPayloadTransferUpdate called: " + update.getStatus());
-                }
-            };
-    private double[] toDoubleArray(byte[] arr){
-        int times = Double.SIZE/Byte.SIZE;
-        double[] doubles = new double[arr.length/times];
-        for(int i=0;i<doubles.length;i++){
-            doubles[i] = ByteBuffer.wrap(arr,i*times,times).getDouble();
+    /**
+     *  This method executes when the activity is first initialized and the user first sees the map
+     *  screen. It will grab user information from the previous screen, whether it may be the Join
+     *  or Create screen, initializes the Google Map on the screen, initializes the Google Client
+     *  that hosts the functionality of the Google libraries used in this application and
+     *  establishes a connection to the client. In addition, crucial data structures are initialized
+     *  here.
+     *
+     * @param savedInstanceState    Default argument passed into the <code> onCreate() </code>
+     *                              method. Used to restore the object to a previous state using
+     *                              the data in the <code> Bundle </code> object.
+     */
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_maps);
+        Intent intent = getIntent();
+        String[] data_c = intent.getStringArrayExtra(CreateSearch.MESSAGE_NAME);
+        String[] data_j = intent.getStringArrayExtra(JoinSearch.MESSAGE_NAME_JOIN);
+        if(data_c == null){
+            this.nickname = data_j[1];
+            this.typeJoinCreate = data_j[0];
         }
-        return doubles;
-    }
-    private byte[] toByteArray(double[] doubleArray){
-        int times = Double.SIZE / Byte.SIZE;
-        byte[] bytes = new byte[doubleArray.length * times];
-        for(int i=0;i<doubleArray.length;i++){
-            ByteBuffer.wrap(bytes, i*times, times).putDouble(doubleArray[i]);
+        else{
+            this.nickname = data_c[1];
+            this.typeJoinCreate = data_c[0];
         }
-        return bytes;
+        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
+
+        // Create an instance of GoogleAPIClient.
+        if (mGoogleApiClient == null) {
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addConnectionCallbacks(this)
+                    .addApi(LocationServices.API)
+                    .addApi(Nearby.CONNECTIONS_API)
+                    .build();
+        }
+        mGoogleApiClient.connect();
+
+        if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(MapsActivity.this,
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                    1);
+        }
+        mLocationRequest = createLocationRequest();
+        endpointIDs = new LinkedList<String>();
+        LLList = new LinkedList<LatLng>();
+
+        Log.i("f", String.valueOf(mGoogleApiClient.isConnected()));
     }
+
+    /**
+     *  Executes when the Google Map is ready and logs it, indicating the map initialization.
+     *
+     * @param googleMap     Google Map object
+     */
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+        Log.i("main","mainfunction");
+    }
+
+    /**
+     * Runs when the GoogleApiClient object succeeds in connecting. Starts either discovery or
+     * advertising functions and requests for the needed location permissions before calling
+     * startLocationUpdates().
+     *
+     * @param connectionHint    Bundle of data provided to clients by Google Play services. May be
+     *                          null if no content is provided by the service.
+     */
+    @Override
+    public void onConnected(Bundle connectionHint) {
+        if(typeJoinCreate.equals("1")){
+            this.startDiscovery();
+        }
+        else{
+            this.startAdvertising();
+        }
+
+        Log.i("onConnected","SearchMap Connected");
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
+        PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
+        Log.i("onConnected","Connected?: "+ mGoogleApiClient.isConnected());
+        result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
+            @Override
+            public void onResult(@NonNull LocationSettingsResult result) {
+                final Status status = result.getStatus();
+                Log.i("onResult","SearchMap Connected " + status.getStatusCode());
+
+                switch (status.getStatusCode()) {
+                    case LocationSettingsStatusCodes.SUCCESS:
+                        //mMap.setMyLocationEnabled(true);
+                        requestPermissions();
+                        startLocationUpdates();
+                        break;
+                    case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+                        //mMap.setMyLocationEnabled(true);
+                        try {
+                            status.startResolutionForResult(
+                                    MapsActivity.this, 1000);
+                        } catch (IntentSender.SendIntentException e) {
+                            // Ignore the error.
+                        }
+                        requestPermissions();
+                        startLocationUpdates();
+                        break;
+                    case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                        break;
+                }
+            }
+        });
+    }
+
+    /**
+     * Utility function to request the user to allow location permissions for the application, if
+     * not already allowed.
+     */
+    private void requestPermissions(){
+        if(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(MapsActivity.this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    1);}
+    }
+
+    /**
+     * Function that returns the results of a permission request.
+     *
+     * @param requestCode   A code specifying the actions to take after
+     *                      given the results.
+     *
+     * @param permissions   The desired permission to be granted.
+     *
+     * @param grantResults  The results returned to the application.
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case 1 : {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                } else {
+                    System.exit(0);
+                }
+            }
+        }
+    }
+
+    /**
+     * Function that waits for the necessary permissions, and then requests location updates
+     */
+    public void startLocationUpdates(){
+        Log.i("drawLines","drawLines");
+        Log.i("drawLines",""+(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED));
+
+        if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
+            Log.i("drawLines","requestingupdates");
+
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+
+        }
+        else{
+            try{
+                TimeUnit.SECONDS.sleep(3);}
+            catch(java.lang.InterruptedException e){
+
+            }
+            startLocationUpdates();
+        }
+    }
+
+    /**
+     * Called when requestLocationUpdates sends a new location. It's main functionality is to update
+     * the location object and draw a circle at the given location, as well as centering the camera.
+     * Also, if available, peers will also be sent the location via payload.
+     *
+     * @param location      The location returned by the LocationListener while requesting for
+     *                      location updates.
+     */
+    @Override
+    public void onLocationChanged(Location location) {
+        mLastLocation = location;
+
+        if (!endpointIDs.isEmpty()) {
+            double[] latlng = new double[]{mLastLocation.getLatitude(), mLastLocation.getLongitude()};
+            final PendingResult<Status> statusPendingResult = Nearby.Connections.sendPayload(mGoogleApiClient, endpointIDs, Payload.fromBytes(toByteArray(latlng))); //?
+        }
+
+        Log.i("onLocationChangedLat", String.valueOf(mLastLocation.getLatitude()));
+        Log.i("onLocationChangedLong", String.valueOf(mLastLocation.getLongitude()));
+
+        LatLng node = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+        mMap.addCircle(new CircleOptions()
+                .center(node)
+                .radius(5)
+                .strokeWidth(5)
+                .strokeColor(Color.BLACK)
+                .fillColor(Color.argb(50, 0, 0, 255)));
+
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
+                .zoom(18)
+                .tilt(40)
+                .build();
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+
+    }
+
+
+    /**
+     * Called when the client is temporarily in a suspended state.
+     *
+     * @param i     The reason for the disconnection. Defined by constants CAUSE_*.
+     */
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    /**
+     * Initializes the LocationRequest object with the intervals between requests, fastest
+     * intervals, and desired priority.
+     *
+     * @return      The modified LocationRequest object
+     */
+    protected LocationRequest createLocationRequest() {
+        LocationRequest temp = new LocationRequest();
+        temp.setInterval(3000);
+        temp.setFastestInterval(2000);
+        temp.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        return temp;
+    }
+
+    /**
+     *  Executes when the activity is started. Initializes the connection to the Google API Client.
+     */
+    protected void onStart() {
+        Log.i("onStart","SearchMap Started");
+        mGoogleApiClient.connect();
+        super.onStart();
+    }
+
+    /**
+     *  Executes when the activity is ended. Severs the connection to the Google API Client.
+     */
+    protected void onStop() {
+        mGoogleApiClient.disconnect();
+        super.onStop();
+    }
+
+    /**
+     *  Starts the act of advertising the device to other potential devices. Implements a 1-to-many
+     *  protocol of connection and logs the result of initializing the advertising.
+     */
+    private void startAdvertising(){
+        Nearby.Connections.startAdvertising(
+                mGoogleApiClient,
+                this.nickname == null ? "no nickname" : this.nickname,
+                SERVICE_ID,
+                mConnectionLifecycleCallback,
+                new AdvertisingOptions(Strategy.P2P_STAR))
+                .setResultCallback(
+                        new ResultCallback<Connections.StartAdvertisingResult>() {
+                            @Override
+                            public void onResult(@NonNull Connections.StartAdvertisingResult result) {
+                                if (result.getStatus().isSuccess()) {
+                                    // We're advertising!
+                                    Log.i("SELF ADVERTISING", "CONNECTED");
+                                } else {
+                                    // We were unable to start advertising.
+                                    Log.i("SELF ADVERTISING", "NOT CONNECTED");
+                                }
+                            }
+                        });
+    }
+
+    /**
+     *  Starts the act of discovering other potential devices. Implements a 1-to-many
+     *  protocol of connection and logs the result of initializing the advertising.
+     */
+    private void startDiscovery() {
+        Nearby.Connections.startDiscovery(
+
+                mGoogleApiClient,
+                SERVICE_ID,
+                mEndpointDiscoveryCallback,
+                new DiscoveryOptions(Strategy.P2P_STAR))
+                .setResultCallback(
+                        new ResultCallback<Status>() {
+                            @Override
+                            public void onResult(@NonNull Status status) {
+                                if (status.isSuccess()) {
+                                    // We're discovering!
+                                    Log.i("SELF DISCOVERING", "DISCOVERING");
+                                } else {
+                                    // We were unable to start discovering.
+                                    Log.i("SELF DISCOVERING", "NOT DISCOVERING");
+                                    Log.i("SELF DISCOVERING", String.valueOf(status.getStatusCode()));
+
+
+                                }
+                            }
+                        });
+    }
+
 
     /**
      *  This object is instrumental with regards to the implementation of advertising devices. It
@@ -223,8 +495,14 @@ public class MapsActivity extends FragmentActivity implements
      */
     private final EndpointDiscoveryCallback mEndpointDiscoveryCallback =
             new EndpointDiscoveryCallback() {
-
-
+                /**
+                 *  Executes when an advertising device is discovered and requests a connection to
+                 *  the advertising device.
+                 *
+                 * @param endpointId                The unique ID of the advertising device
+                 *
+                 * @param discoveredEndpointInfo    Information regarding the advertising device
+                 */
                 @Override
                 public void onEndpointFound(
                         String endpointId, DiscoveredEndpointInfo discoveredEndpointInfo) {
@@ -252,6 +530,12 @@ public class MapsActivity extends FragmentActivity implements
                                     });
                 }
 
+                /**
+                 *  Executes when the advertising device is lost or the connection is severed for
+                 *  whatever reason.
+                 *
+                 * @param endpointId    The unique ID of the advertising device.
+                 */
                 @Override
                 public void onEndpointLost(String endpointId) {
                     // A previously discovered endpoint has gone away.
@@ -260,252 +544,103 @@ public class MapsActivity extends FragmentActivity implements
                 }
             };
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_maps);
-        Intent intent = getIntent();
-        String[] data_c = intent.getStringArrayExtra(CreateSearch.MESSAGE_NAME);
-        String[] data_j = intent.getStringArrayExtra(JoinSearch.MESSAGE_NAME_JOIN);
-        if(data_c == null){
-            this.nickname = data_j[1];
-            this.typeJoinCreate = data_j[0];
-        }
-        else{
-            this.nickname = data_c[1];
-            this.typeJoinCreate = data_c[0];
-        }
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
 
-        // Create an instance of GoogleAPIClient.
-        if (mGoogleApiClient == null) {
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addConnectionCallbacks(this)
-                    .addApi(LocationServices.API)
-                    .addApi(Nearby.CONNECTIONS_API)
-                    .build();
-        }
-        mGoogleApiClient.connect();
-
-        if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(MapsActivity.this,
-                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                    1);
-        }
-        mLocationRequest = createLocationRequest();
-        endpointIDs = new LinkedList<String>();
-        LLList = new LinkedList<LatLng>();
-
-        Log.i("f", String.valueOf(mGoogleApiClient.isConnected()));
-    }
-
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-        Log.i("main","mainfunction");
-    }
-
-    @Override
-    public void onConnected(Bundle connectionHint) {
-        if(typeJoinCreate.equals("1")){
-            this.startDiscovery();
-        }
-        else{
-            this.startAdvertising();
-        }
-//        this.startDiscovery();
-//        this.startAdvertising();
-
-        Log.i("onConnected","SearchMap Connected");
-        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
-        PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
-        Log.i("onConnected","Connected?: "+ mGoogleApiClient.isConnected());
-        result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
-            @Override
-            public void onResult(@NonNull LocationSettingsResult result) {
-                final Status status = result.getStatus();
-                Log.i("onResult","SearchMap Connected " + status.getStatusCode());
-
-                switch (status.getStatusCode()) {
-                    case LocationSettingsStatusCodes.SUCCESS:
-                        //mMap.setMyLocationEnabled(true);
-                        requestPermissions();
-                        startLocationUpdates();
-                        break;
-                    case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
-                        //mMap.setMyLocationEnabled(true);
-                        try {
-                            status.startResolutionForResult(
-                                    MapsActivity.this, 1000);
-                        } catch (IntentSender.SendIntentException e) {
-                            // Ignore the error.
-                        }
-                        requestPermissions();
-                        startLocationUpdates();
-                        break;
-                    case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-                        break;
-                }
-            }
-        });
-    }
-
-    private void requestPermissions(){
-        if(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(MapsActivity.this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    1);}
-    }
-
-    public void startLocationUpdates(){
-        Log.i("drawLines","drawLines");
-        Log.i("drawLines",""+(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED));
-
-        if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
-            Log.i("drawLines","requestingupdates");
-
-            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-
-        }
-        else{
-            try{
-                TimeUnit.SECONDS.sleep(3);}
-            catch(java.lang.InterruptedException e){
-
-            }
-            startLocationUpdates();
-        }
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-
-        mLastLocation = location;
-
-        if (!endpointIDs.isEmpty()) {
-            double[] latlng = new double[]{mLastLocation.getLatitude(), mLastLocation.getLongitude()};
-            final PendingResult<Status> statusPendingResult = Nearby.Connections.sendPayload(mGoogleApiClient, endpointIDs, Payload.fromBytes(toByteArray(latlng))); //?
-        }
-
-        Log.i("onLocationChangedLat", String.valueOf(mLastLocation.getLatitude()));
-        Log.i("onLocationChangedLong", String.valueOf(mLastLocation.getLongitude()));
-
-        LatLng node = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-        mMap.addCircle(new CircleOptions()
-                .center(node)
-                .radius(5)
-                .strokeWidth(5)
-                .strokeColor(Color.BLACK)
-                .fillColor(Color.argb(50, 0, 0, 255)));
-
-        CameraPosition cameraPosition = new CameraPosition.Builder()
-                .target(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
-                .zoom(18)
-                .tilt(40)
-                .build();
-        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
-
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case 1 : {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                } else {
-                    System.exit(0);
-                }
-            }
-        }
-    }
-
-    public void onConnectionSuspended(int i) {
-
-    }
-
-
-    protected LocationRequest createLocationRequest() {
-        LocationRequest temp = new LocationRequest();
-        temp.setInterval(3000);
-        temp.setFastestInterval(2000);
-        temp.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        return temp;
-    }
-
-
-    protected void onStart() {
-        Log.i("onStart","SearchMap Started");
-        mGoogleApiClient.connect();
-        super.onStart();
-    }
-
-    protected void onStop() {
-        mGoogleApiClient.disconnect();
-        super.onStop();
-    }
-
-    private void startAdvertising(){
-        Nearby.Connections.startAdvertising(
-                mGoogleApiClient,
-                this.nickname == null ? "no nickname" : this.nickname,
-                SERVICE_ID,
-                mConnectionLifecycleCallback,
-                new AdvertisingOptions(Strategy.P2P_STAR))
-                .setResultCallback(
-                        new ResultCallback<Connections.StartAdvertisingResult>() {
-                            @Override
-                            public void onResult(@NonNull Connections.StartAdvertisingResult result) {
-                                if (result.getStatus().isSuccess()) {
-                                    // We're advertising!
-                                    Log.i("SELF ADVERTISING", "CONNECTED");
-                                } else {
-                                    // We were unable to start advertising.
-                                    Log.i("SELF ADVERTISING", "NOT CONNECTED");
-                                }
-                            }
-                        });
-    }
-
-
-    private void startDiscovery() {
-//        ActivityCompat.requestPermissions(MapsActivity.this,
-//                new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-//                1);
-        Nearby.Connections.startDiscovery(
-
-                mGoogleApiClient,
-                SERVICE_ID,
-                mEndpointDiscoveryCallback,
-                new DiscoveryOptions(Strategy.P2P_STAR))
-                .setResultCallback(
-                        new ResultCallback<Status>() {
-                            @Override
-                            public void onResult(@NonNull Status status) {
-                                if (status.isSuccess()) {
-                                    // We're discovering!
-                                    Log.i("SELF DISCOVERING", "DISCOVERING");
-                                } else {
-                                    // We were unable to start discovering.
-                                    Log.i("SELF DISCOVERING", "NOT DISCOVERING");
-                                    Log.i("SELF DISCOVERING", String.valueOf(status.getStatusCode()));
-
-
-                                }
-                            }
-                        });
-    }
-
+    /**
+     *  Executes when the connection is failed
+     *
+     * @param connectionResult  The callback object specifying the failure
+     */
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
     }
 
+    /**
+     * Initializes the PayloadCallback object and specifies the response to receiving a payload in
+     * onPayloadReceived. Upon delivery of a payload, the function unwraps it and draws a circle at
+     * the given location. onPayloadTransferUpdate returns status codes based on the
+     * pending/finished status of a payload delivery. Not currently used, unnecessary for bytearrays.
+     */
+    private final PayloadCallback mPayloadCallback =
+            new PayloadCallback() {
+
+                /**
+                 * Specifies the response upon receiving a payload.
+                 *
+                 * @param endpointId        The unique identifier of the payload sender.
+                 *
+                 * @param payload           Sent data in the form of a bytearray, file, or
+                 *                          data stream.
+                 */
+                @Override
+                public void onPayloadReceived(String endpointId, Payload payload) {
+                    coords = toDoubleArray(payload.asBytes());
+                    LatLng node = new LatLng(coords[0], coords[1]);
+                    mMap.addCircle(new CircleOptions()
+                            .center(node)
+                            .radius(5)
+                            .strokeWidth(5)
+                            .strokeColor(Color.BLACK)
+                            .fillColor(Color.argb(50, 255, 0, 0)));
+
+                }
+
+                /**
+                 * Method which provides updates about the progress of both incoming and outgoing
+                 * payloads. Returns the information in the form of status messages.
+                 *
+                 * @param endpointId        The unique identifier of the payload sender.
+                 *
+                 * @param update            The PayloadTransferUpdate describing the status of
+                 *                          the transfer.
+                 */
+                @Override
+                public void onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate update) {
+                    Log.i("SELF", "onPayloadTransferUpdate called: " + update.getStatus());
+                }
+            };
+
+
+
+    /**
+     * Utility function to convert a bytearray to a doublearray
+     *
+     * @param arr   bytearray provided for conversion
+     *
+     * @return      A double array converted from the bytearray
+     */
+    private double[] toDoubleArray(byte[] arr){
+        int times = Double.SIZE/Byte.SIZE;
+        double[] doubles = new double[arr.length/times];
+        for(int i=0;i<doubles.length;i++){
+            doubles[i] = ByteBuffer.wrap(arr,i*times,times).getDouble();
+        }
+        return doubles;
+    }
+
+    /**
+     * Utility function to convert a double array to a bytearray
+     *
+     * @param doubleArray   double array provided for conversion
+     *
+     * @return              A bytearray converted from the double array
+     */
+    private byte[] toByteArray(double[] doubleArray){
+        int times = Double.SIZE / Byte.SIZE;
+        byte[] bytes = new byte[doubleArray.length * times];
+        for(int i=0;i<doubleArray.length;i++){
+            ByteBuffer.wrap(bytes, i*times, times).putDouble(doubleArray[i]);
+        }
+        return bytes;
+    }
+
+
+    /**
+     *  Places a marker on the map indicating the finding of the target object.
+     *
+     * @param view  Default argument passed into the <code> createButtonPress </code> and specifies
+     *              the current display viewed by the user.
+     */
     public void notifyFound(View view){
         mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
