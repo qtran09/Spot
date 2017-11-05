@@ -62,6 +62,8 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDRm7qcs2KPHdHqwaEYWeB7BMJPsLmAtkw" />
+        <meta-data android:name="com.google.android.gms.nearby.connection.SERVICE_ID"
+            android:value="Search.Party.com" />
 
 
 

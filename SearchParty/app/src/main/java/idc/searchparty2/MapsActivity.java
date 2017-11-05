@@ -92,7 +92,7 @@ public class MapsActivity extends FragmentActivity implements
 
     private String nickname;
     private String typeJoinCreate;
-    private final String SERVICE_ID = "kappa";
+    private final String SERVICE_ID = "Search.Party.com";
 
     private MapsActivity thisClass;
 
@@ -407,9 +407,6 @@ public class MapsActivity extends FragmentActivity implements
     }
 
     private void startAdvertising(){
-//        ActivityCompat.requestPermissions(MapsActivity.this,
-//                new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-//                1);
         Nearby.Connections.startAdvertising(
                 mGoogleApiClient,
                 this.nickname == null ? "no nickname" : this.nickname,
@@ -439,7 +436,7 @@ public class MapsActivity extends FragmentActivity implements
         Nearby.Connections.startDiscovery(
 
                 mGoogleApiClient,
-                "HUH",
+                SERVICE_ID,
                 mEndpointDiscoveryCallback,
                 new DiscoveryOptions(Strategy.P2P_STAR))
                 .setResultCallback(
