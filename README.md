@@ -16,7 +16,7 @@ These instructions will get you a copy of the project for you to use by yourself
 6. Push it: `git push origin my-new-feature`
 7. Submit a pull request
 ## Built With
-Java and Android Studio
+Java and Android Studio. Also used the Google Nearby, Location and Maps APIs.
 
 ## Credits
 Original contributers: Justin Lee, Oliver Pang, Quyen Tran, Shuyang Wang
