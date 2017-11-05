@@ -1,5 +1,6 @@
 package idc.searchparty2;
 
+//Look at these beautiful imports
 import android.Manifest;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
@@ -53,6 +54,30 @@ import com.google.android.gms.nearby.connection.Strategy;
 import android.location.Location;
 import android.view.View;
 
+/**
+ *  This class is the class that hosts the entirety of the functionality of the map and its
+ *  listeners. The functionality of this class can be split into two parts, one for each usage of
+ *  the crucial APIs used in this class: Location and Nearby.
+ *
+ *  Location takes a Google API key and fetches requests for the user's current location processes
+ *  relevant information regarding the location such as the user's change in position and the user's
+ *  position in Latitude and Longitude, granted that the user allows and enables the required
+ *  permissions required for this functionality. Furthermore, additional related functionality is
+ *  added to draw in circles specifying where each user has been before, notifying all other users
+ *  in the group or connection.
+ *
+ *  Nearby serves as the methodology used by the application to communicate with other devices using
+ *  the same application. Nearby functionality can be split into two parts as well: Advertising and
+ *  Discovery. Advertising is used by the applications that are the initial creators of the group or
+ *  connection and simply broadcasts the existence of the application to be picked up by other
+ *  devices. This part will also alert the user if a discovering application wishes to establish a
+ *  connection, prompting the user who may accept or reject that request and adding another tier of
+ *  security. Discovery simply detects advertising devices and requests access into the group. After
+ *  a connection is made, the locations of every user will be visible to every other user.
+ *
+ *  This class implements interfaces that specify the map functionality, result callbacks for
+ *  connections, and listeners.
+ */
 public class MapsActivity extends FragmentActivity implements
         OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
@@ -109,9 +134,26 @@ public class MapsActivity extends FragmentActivity implements
         }
         return bytes;
     }
+
+    /**
+     *  This object is instrumental with regards to the implementation of advertising devices. It
+     *  specifies the details of what happens when a connection is being attempted. Specifically, it
+     *  will alert the user if a connection is being attempted by a discovering device, sending back
+     *  the user appropriated response.
+     */
     private final ConnectionLifecycleCallback mConnectionLifecycleCallback =
             new ConnectionLifecycleCallback() {
 
+                /**
+                 *  Executes when a connection is being attempted, alerts the user, awaits a user
+                 *  response, sending back an error if the user denies the attempt or establishing
+                 *  a connection otherwise.
+                 *
+                 * @param endpointId        The unique ID of the discovering device attempting the
+                 *                          connection
+                 * @param connectionInfo    A packet with information regarding the discovering
+                 *                          device
+                 */
                 @Override
                 public void onConnectionInitiated(String endpointId, ConnectionInfo connectionInfo) {
                     Log.i("SELF", "onConnectionInitiated");
@@ -136,6 +178,15 @@ public class MapsActivity extends FragmentActivity implements
                             .show();
                 }
 
+                /**
+                 *  This method executes when a result has been reached regarding the connection
+                 *  attempt. It will simply log the result of connection
+                 *
+                 * @param endpointId    The unique ID of the discovering device attempting the
+                 *                      connection
+                 * @param result        A result object specifying whether there was a success or
+                 *                      not
+                 */
                 @Override
                 public void onConnectionResult(String endpointId, ConnectionResolution result) {
                     Log.i("SELF", "onConnectionResult");
@@ -151,6 +202,11 @@ public class MapsActivity extends FragmentActivity implements
                     }
                 }
 
+                /**
+                 *  Executes when a discovering device disconnects
+                 *
+                 * @param endpointId    The unique ID of the disconnecting device
+                 */
                 @Override
                 public void onDisconnected(String endpointId) {
                     Log.i("SELF", "onDisconnected");
@@ -159,8 +215,16 @@ public class MapsActivity extends FragmentActivity implements
                 }
             };
 
+    /**
+     *  This object is important in the implementation of discovering devices. It specifies what
+     *  will happen once an advertising device is discovered. The discovering device will send a
+     *  request to the advertising application with information regarding the device and will
+     *  log a message specifying a success or failure.
+     */
     private final EndpointDiscoveryCallback mEndpointDiscoveryCallback =
             new EndpointDiscoveryCallback() {
+
+
                 @Override
                 public void onEndpointFound(
                         String endpointId, DiscoveredEndpointInfo discoveredEndpointInfo) {
@@ -238,16 +302,6 @@ public class MapsActivity extends FragmentActivity implements
         Log.i("f", String.valueOf(mGoogleApiClient.isConnected()));
     }
 
-
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
