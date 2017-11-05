@@ -11,7 +11,7 @@ Manifest XML file located in SearchParty/app/src/main/
 ## Usage
 Spot can be used in many ways. For example, a group of friends can use use Spot to eliminate previously searched locations in a simple game of hide-and-seek or scavenger. More importantly, Spot can be used as a way to manage a search party, keeping track of a group of people as they search for a target, whether it may be a missing person or a valuable object. It will be possible to monitor previously covered across all devices so every member of the search party will be able spread out and cover as much non-overlapped area as possible while keeping track of other group members. Once the object or person is found, one team member will be able to alert everyone else in the group.
 ### Features
-At the landing screen, users will be able to create a new group or join a new group. In order to join a new group, there first must need to be a nearby group already initialized. Users will need to input a nickname for identification in the map.
+At the landing screen, users will be able to create a new group or join a new group. In order to join a new group, there first must need to be a nearby group already initialized. Users will need to input a nickname for identification in the map. A detailed description of our project can be found in Software Requirements Specification .pdf.
 ## Getting Started
 These instructions will get you a copy of the project for you to use by yourself or to work on.
 ### Prerequisites
