@@ -140,7 +140,8 @@ public class MapsActivity extends FragmentActivity implements
         }
         mGoogleApiClient.connect();
 
-        if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(MapsActivity.this,
+                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MapsActivity.this,
                     new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
                     1);
@@ -181,8 +182,10 @@ public class MapsActivity extends FragmentActivity implements
         }
 
         Log.i("onConnected","SearchMap Connected");
-        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
-        PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
+        LocationSettingsRequest.Builder builder =
+                new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
+        PendingResult<LocationSettingsResult> result =
+                LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
         Log.i("onConnected","Connected?: "+ mGoogleApiClient.isConnected());
         result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
             @Override
@@ -219,7 +222,8 @@ public class MapsActivity extends FragmentActivity implements
      * not already allowed.
      */
     private void requestPermissions(){
-        if(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+        if(ContextCompat.checkSelfPermission(MapsActivity.this,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(MapsActivity.this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     1);}
@@ -255,12 +259,16 @@ public class MapsActivity extends FragmentActivity implements
      */
     public void startLocationUpdates(){
         Log.i("drawLines","drawLines");
-        Log.i("drawLines",""+(ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED));
+        Log.i("drawLines",""+(
+                ContextCompat.checkSelfPermission(MapsActivity.this,
+                        Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED));
 
-        if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
+        if (ContextCompat.checkSelfPermission(MapsActivity.this,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
             Log.i("drawLines","requestingupdates");
 
-            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+            LocationServices.FusedLocationApi.requestLocationUpdates(
+                    mGoogleApiClient, mLocationRequest, this);
 
         }
         else{
@@ -286,8 +294,11 @@ public class MapsActivity extends FragmentActivity implements
         mLastLocation = location;
 
         if (!endpointIDs.isEmpty()) {
-            double[] latlng = new double[]{mLastLocation.getLatitude(), mLastLocation.getLongitude()};
-            final PendingResult<Status> statusPendingResult = Nearby.Connections.sendPayload(mGoogleApiClient, endpointIDs, Payload.fromBytes(toByteArray(latlng))); //?
+            double[] latlng = new double[]{
+                    mLastLocation.getLatitude(), mLastLocation.getLongitude()
+            };
+            final PendingResult<Status> statusPendingResult = Nearby.Connections.sendPayload(
+                    mGoogleApiClient, endpointIDs, Payload.fromBytes(toByteArray(latlng))); //?
         }
 
         Log.i("onLocationChangedLat", String.valueOf(mLastLocation.getLatitude()));
@@ -395,7 +406,8 @@ public class MapsActivity extends FragmentActivity implements
                                 if (status.isSuccess()) {
                                     // We're discovering!
                                     Log.i("SELF DISCOVERING", "DISCOVERING");
-                                } else {
+                                }
+                                else {
                                     // We were unable to start discovering.
                                     Log.i("SELF DISCOVERING", "NOT DISCOVERING");
                                     Log.i("SELF DISCOVERING", String.valueOf(status.getStatusCode()));
@@ -427,16 +439,19 @@ public class MapsActivity extends FragmentActivity implements
                  *                          device
                  */
                 @Override
-                public void onConnectionInitiated(String endpointId, ConnectionInfo connectionInfo) {
+                public void onConnectionInitiated(String endpointId, ConnectionInfo connectionInfo){
                     Log.i("SELF", "onConnectionInitiated");
                     final String endpoint = endpointId;
                     new AlertDialog.Builder(MapsActivity.this)
                             .setTitle("Accept connection to " + connectionInfo.getEndpointName())
-                            .setMessage("Confirm if the code " + connectionInfo.getAuthenticationToken() + " is also displayed on the other device")
+                            .setMessage("Confirm if the code "
+                                    + connectionInfo.getAuthenticationToken()
+                                    + " is also displayed on the other device")
                             .setPositiveButton("Accept", new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
                                     // The user confirmed, so we can accept the connection.
-                                    Nearby.Connections.acceptConnection(mGoogleApiClient, endpoint, mPayloadCallback);
+                                    Nearby.Connections.acceptConnection(
+                                            mGoogleApiClient, endpoint, mPayloadCallback);
                                     endpointIDs.add(endpoint);
                                 }
                             })
@@ -521,7 +536,8 @@ public class MapsActivity extends FragmentActivity implements
                                                 // We successfully requested a connection. Now both sides
                                                 // must accept before the connection is established.
                                                 Log.i("SELF", "REQUESTED CONNECTION");
-                                            } else {
+                                            }
+                                            else {
                                                 // Nearby Connections failed to request the connection.
                                                 Log.i("SELF", "FAILED REQUESTED CONNECTION");
 
@@ -559,7 +575,8 @@ public class MapsActivity extends FragmentActivity implements
      * Initializes the PayloadCallback object and specifies the response to receiving a payload in
      * onPayloadReceived. Upon delivery of a payload, the function unwraps it and draws a circle at
      * the given location. onPayloadTransferUpdate returns status codes based on the
-     * pending/finished status of a payload delivery. Not currently used, unnecessary for bytearrays.
+     * pending/finished status of a payload delivery. Not currently used, unnecessary for
+     * bytearrays.
      */
     private final PayloadCallback mPayloadCallback =
             new PayloadCallback() {
@@ -595,7 +612,8 @@ public class MapsActivity extends FragmentActivity implements
                  *                          the transfer.
                  */
                 @Override
-                public void onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate update) {
+                public void onPayloadTransferUpdate(
+                        String endpointId, PayloadTransferUpdate update) {
                     Log.i("SELF", "onPayloadTransferUpdate called: " + update.getStatus());
                 }
             };
