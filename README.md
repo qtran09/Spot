@@ -15,6 +15,9 @@ These instructions will get you a copy of the project for you to use by yourself
 5. Commit it: `git commit -am 'Add some feature'`
 6. Push it: `git push origin my-new-feature`
 7. Submit a pull request
+## Built With
+Java and Android Studio
+
 ## Credits
 Original contributers: Justin Lee, Oliver Pang, Quyen Tran, Shuyang Wang
 ## License 
