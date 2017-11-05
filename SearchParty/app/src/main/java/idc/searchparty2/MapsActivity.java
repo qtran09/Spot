@@ -14,7 +14,9 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.content.IntentSender.SendIntentException;
 import android.content.IntentSender;
@@ -63,6 +65,7 @@ import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
 import android.location.Location;
+import android.view.View;
 
 import static com.google.android.gms.internal.zzaou.onReceive;
 
@@ -76,7 +79,6 @@ public class MapsActivity extends FragmentActivity implements
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
     private LocationRequest mLocationRequest;
-    private Marker mCurrLocationMarker;
     private LinkedList<LatLng> LLList;
 
     private String nickname;
@@ -210,10 +212,16 @@ public class MapsActivity extends FragmentActivity implements
         if(data_c == null){
             this.nickname = data_j[1];
             this.typeJoinCreate = data_j[0];
+            Log.i("SELF", this.nickname);
+            Log.i("SELF", this.typeJoinCreate);
+
         }
         else{
             this.nickname = data_c[3];
             this.typeJoinCreate = data_c[0];
+            Log.i("SELF", this.nickname);
+            Log.i("SELF", this.typeJoinCreate);
+
         }
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -229,7 +237,6 @@ public class MapsActivity extends FragmentActivity implements
                     .build();
         }
         mGoogleApiClient.connect();
-
         if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MapsActivity.this,
                     new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
@@ -237,7 +244,6 @@ public class MapsActivity extends FragmentActivity implements
         }
         mLocationRequest = createLocationRequest();
         LLList = new LinkedList<LatLng>();
-
         Log.i("f", String.valueOf(mGoogleApiClient.isConnected()));
     }
 
@@ -265,9 +271,6 @@ public class MapsActivity extends FragmentActivity implements
         else{
             this.startAdvertising();
         }
-//        this.startDiscovery();
-//        this.startAdvertising();
-
         Log.i("onConnected","SearchMap Connected");
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
         PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
@@ -323,7 +326,7 @@ public class MapsActivity extends FragmentActivity implements
             try{
                 TimeUnit.SECONDS.sleep(3);}
             catch(java.lang.InterruptedException e){
-
+                e.printStackTrace();
             }
             startLocationUpdates();
         }
@@ -360,7 +363,9 @@ public class MapsActivity extends FragmentActivity implements
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                } else {
+                    System.out.print("");
+                }
+                else {
                     System.exit(0);
                 }
             }
@@ -436,16 +441,19 @@ public class MapsActivity extends FragmentActivity implements
                                     // We were unable to start discovering.
                                     Log.i("SELF DISCOVERING", "NOT DISCOVERING");
                                     Log.i("SELF DISCOVERING", String.valueOf(status.getStatusCode()));
-
-
                                 }
                             }
                         });
+    }
+
+    public void notifyFound(View view){
+        mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
+                .title("Found by " + nickname + "!"));
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
     }
-
 }

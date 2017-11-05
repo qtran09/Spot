@@ -31,14 +31,14 @@
         </activity>
         <activity
             android:name=".CreateSearch"
-            android:label="Create a new search">
+            android:label="Create a new group">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="idc.searchparty2.MainActivity" />
         </activity>
         <activity
             android:name=".JoinSearch"
-            android:label="Join a new search">
+            android:label="Join a new group">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="idc.searchparty2.MainActivity" />
