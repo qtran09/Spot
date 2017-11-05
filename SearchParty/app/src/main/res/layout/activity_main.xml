@@ -4,14 +4,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg"
     tools:context="idc.searchparty2.MainActivity">
+
 
     <TextView
         android:id="@+id/welcomeText"
         android:layout_width="wrap_content"
-        android:layout_height="72dp"
-        android:text="Welcome!"
-        android:textSize="36sp"
+        android:layout_height="111dp"
+        android:text="Spot"
+        android:textColor="@color/cast_expanded_controller_progress_text_color"
+        android:textSize="72sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
@@ -24,15 +27,18 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:layout_marginEnd="8dp"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
+        android:background="#44FFFFFF"
         android:onClick="createButtonPress"
-        android:text="Create"
+        android:text="Create Group"
+        android:textColor="@color/cast_expanded_controller_text_color"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/joinButton"
         app:layout_constraintHorizontal_bias="0.22"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+
         app:layout_constraintVertical_bias="0.799" />
 
     <Button
@@ -40,13 +46,29 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:layout_marginEnd="52dp"
+        android:layout_marginEnd="36dp"
         android:layout_marginTop="8dp"
+        android:background="#44FFFFFF"
         android:onClick="joinButtonPress"
-        android:text="Join"
+        android:text="  Join Group  "
+        android:textColor="@color/cast_expanded_controller_text_color"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.799" />
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/floatingActionButton"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:scaleType="center"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:clickable="true"
+        android:onClick="initiateHelp"
+        app:backgroundTint="#44FFFFFF"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@android:drawable/ic_menu_help" />
 
 </android.support.constraint.ConstraintLayout>

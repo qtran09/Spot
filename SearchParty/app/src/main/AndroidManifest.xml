@@ -31,19 +31,18 @@
         </activity>
         <activity
             android:name=".CreateSearch"
-            android:label="Create a new search">
+            android:label="Create a new group">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="idc.searchparty2.MainActivity" />
         </activity>
         <activity
             android:name=".JoinSearch"
-            android:label="Join a new search">
+            android:label="Join a new group">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="idc.searchparty2.MainActivity" />
         </activity>
-
         <activity
             android:name=".MapsActivity"
             android:label="@string/title_activity_maps">
@@ -51,22 +50,29 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="idc.searchparty2.MainActivity" />
         </activity>
-    <!--
+        <!--
          The API key for Google Maps-based APIs is defined as a string resource.
          (See the file "res/values/google_maps_api.xml").
          Note that the API key is linked to the encryption key used to sign the APK.
          You need a different API key for each encryption key, including the release key that is used to
          sign the APK for publishing.
          You can define the keys for the debug and release targets in src/debug/ and src/release/.
-    -->
+        -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDRm7qcs2KPHdHqwaEYWeB7BMJPsLmAtkw" />
-        <meta-data android:name="com.google.android.gms.nearby.connection.SERVICE_ID"
+        <meta-data
+            android:name="com.google.android.gms.nearby.connection.SERVICE_ID"
             android:value="Search.Party.com" />
 
+        <activity
+            android:label="Help"
+            android:name=".HelpScreen">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="idc.searchparty2.MainActivity" />
 
-
+        </activity>
     </application>
 
 </manifest>
