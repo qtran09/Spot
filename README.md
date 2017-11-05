@@ -1,7 +1,7 @@
 # Spot
 Spot is an Android mobile application that serves as a way to track a group of people's movements over a decently sized area and gauge the amount of area covered through the usage of Google Maps.
 ## Comments
-Main code is located in SearchParty/app/src/main/java/idc/searchparty2/
+Main Java code is located in SearchParty/app/src/main/java/idc/searchparty2/
 
 Layout XML files located in SearchParty/app/src/main/res/layout/
 
